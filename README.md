@@ -1,51 +1,45 @@
-# Aplikasi Web AR (Google Model-Viewer Standard)
+# Aplikasi Web AR (WebXR Hit-Test & Tap-to-Place)
 
-Aplikasi Augmented Reality (AR) berbasis web murni (**HTML + CSS + Vanilla JavaScript**) menggunakan framework/komponen standar resmi Google saat ini: **Google `<model-viewer>`** (WebXR, Scene Viewer, dan Quick Look).
-
-## Fitur Utama
-
-1. **Load Custom GLB / GLTF**:
-   - Pilih file dari penyimpanan lokal (HP atau PC) menggunakan tombol upload.
-   - Mendukung **Drag & Drop** langsung ke dalam area viewer.
-   - Menggunakan `URL.createObjectURL` lokal (file langsung tampil tanpa perlu upload ke server eksternal).
-2. **Kamera AR Real-Time**:
-   - Tombol **"Tampilkan Kamera AR"**:
-     - **Android**: Mengaktifkan WebXR / Google Play Services for AR (Scene Viewer) untuk menempatkan objek 3D di lantai/meja fisik secara nyata.
-     - **iOS (iPhone/iPad)**: Otomatis terintegrasi dengan Apple Quick Look via Safari.
-     - **Desktop/Laptop**: Menyediakan fitur scan QR Code otomatis untuk membuka tampilan AR di smartphone.
-3. **Preset Model Siap Pakai**:
-   - Disediakan tombol cepat untuk mencoba sampel 3D populer (Astronaut, Duck, Chair, Shishkebab).
-4. **Kontrol Interaktif 3D**:
-   - Rotasi sentuh / mouse, zoom (pinch / scroll), tombol toggle auto-rotate, dan reset kamera.
+Aplikasi Augmented Reality (AR) berbasis **murni HTML + CSS + JavaScript** menggunakan standar **WebXR Hit-Test API** (Three.js & Google WebXR Immersive-AR).
 
 ---
 
-## Cara Menjalankan
+### Solusi Masalah Objek Melayang / Bergeser (Hit-Test Reticle)
 
-### Cara 1: Buka Langsung di Browser
-Anda dapat membuka file `index.html` langsung di browser Chrome, Edge, atau Safari.
+Pada implementasi ini:
+1. **Model Tidak Langsung Muncul**: Saat kamera AR aktif, model disembunyikan agar tidak melayang atau mengikuti gerakan kamera ponsel Anda.
+2. **Deteksi Bidang Permukaan (Plane Detection)**: Sensor WebXR memindai lantai / meja fisik.
+3. **Lingkaran Target (Reticle)**: Lingkaran target biru bercahaya akan muncul dan menempel di lantai saat bidang datar terdeteksi. Banner petunjuk akan berubah menjadi hijau: *"✨ Bidang Siap! Ketuk Layar"*.
+4. **Klik / Tap untuk Meletakkan (Tap-to-Place)**: Ketuk layar ponsel Anda di mana saja. Model 3D akan dimunculkan dan **dikunci permanen pada koordinat dunia nyata di lantai tersebut**. Objek tidak akan bergeser mengikuti pergerakan kamera! Anda bisa bebas berjalan mengitari objek 360 derajat.
+5. **Tombol Kontrol di dalam AR**:
+   - 📍 **Pindahkan**: Melepas kunci model dan menampilkan lingkaran target kembali untuk memilih titik baru.
+   - 🔄 **Putar**: Memutar model 45 derajat.
+   - ➕ / ➖ **Skala**: Menyesuaikan besar/kecil model.
+   - ❌ **Keluar**: Menutup sesi kamera AR dan kembali ke tampilan 3D.
 
-### Cara 2: Menjalankan Local Web Server (Direkomendasikan untuk AR HP)
-WebXR dan akses kamera memerlukan koneksi yang aman (**HTTPS** atau **localhost** / IP lokal).
+---
 
-Jalankan perintah berikut di terminal folder ini:
+### Fitur Utama
 
-**Menggunakan Node.js / npx:**
+- **Load Custom GLB**: Tombol upload file untuk memilih model `.glb` / `.gltf` dari penyimpanan lokal HP atau laptop, serta fitur Drag & Drop.
+- **Auto Bounding-Box Normalization**: Model otomatis diskalakan ke ukuran dunia nyata (~55 cm) dengan titik tumpu tepat di atas lantai (tidak tenggelam atau melayang).
+- **Preset Model**: Tersedia model Astronaut, Rubber Duck, Kursi, dan Makanan untuk langsung dicoba.
+- **Pratinjau 3D (Non-AR)**: Orbit controls interaktif sebelum masuk ke kamera AR.
+
+---
+
+### Cara Menjalankan
+
+WebXR Camera Hit-Test mewajibkan koneksi aman (**localhost** atau **HTTPS**).
+
+Jalankan perintah ini di terminal folder `KELAS`:
+
 ```bash
+# Opsi 1: Menggunakan Node.js
 npx serve .
-```
 
-**Atau menggunakan Python:**
-```bash
+# Opsi 2: Menggunakan Python
 python -m http.server 8080
 ```
 
-Buka URL yang ditampilkan (contoh: `http://localhost:8080` di PC, atau `http://<IP-Komputer-Anda>:8080` di browser Chrome/Safari smartphone yang terhubung ke Wi-Fi yang sama).
-
----
-
-## Struktur File
-
-- `index.html` — Struktur halaman & deklarasi komponen Google `<model-viewer>`.
-- `style.css` — Tampilan responsif modern (Dark UI, glassmorphism, mobile-friendly).
-- `app.js` — Logika load file custom GLB, drag-and-drop, deteksi status AR, dan kontrol kamera.
+Buka URL yang ditampilkan di browser **Google Chrome** smartphone Android Anda (pastikan Google Play Services for AR / ARCore aktif).

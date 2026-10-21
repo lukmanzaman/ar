@@ -2,24 +2,32 @@
 <html lang="id">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no" />
-  <title>Aplikasi Web AR - Google Model Viewer</title>
-  
-  <!-- Google Web Components: <model-viewer> (Standar resmi Google untuk 3D & WebXR AR) -->
-  <script type="module" src="https://ajax.googleapis.com/ajax/libs/model-viewer/3.5.0/model-viewer.min.js"></script>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover" />
+  <title>Aplikasi Web AR - Hit Test & Tap to Place</title>
 
-  <!-- Google Fonts: Inter -->
+  <!-- Google Fonts -->
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet" />
 
   <link rel="stylesheet" href="style.css" />
+
+  <!-- Importmap: Standar resmi JS modern untuk Three.js & GLTF Loader -->
+  <script type="importmap">
+    {
+      "imports": {
+        "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
+        "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"
+      }
+    }
+  </script>
 </head>
 <body>
-  <!-- Container Utama -->
-  <div class="app-container">
-    
-    <!-- Top Bar / Header -->
+  <!-- Canvas 3D WebGL / WebXR Viewport -->
+  <div id="canvas-container"></div>
+
+  <!-- UI Mode Preview (Sebelum masuk Kamera AR) -->
+  <div id="ui-container" class="ui-screen">
     <header class="app-header">
       <div class="brand">
         <div class="brand-icon">
@@ -30,164 +38,182 @@
           </svg>
         </div>
         <div class="brand-text">
-          <h1>Google Web AR Viewer</h1>
-          <p class="subtitle">HTML5 &bull; WebXR &bull; Google &lt;model-viewer&gt;</p>
+          <h1>WebXR Hit-Test AR</h1>
+          <p class="subtitle">Google WebXR &bull; Tap to Place &bull; Custom GLB</p>
         </div>
       </div>
 
       <div class="header-badges">
-        <span id="ar-badge" class="badge badge-checking">
+        <span id="xr-badge" class="badge badge-checking">
           <span class="badge-dot"></span>
-          <span class="badge-label">Mengecek AR...</span>
+          <span class="badge-label">Mengecek Sensor AR...</span>
         </span>
       </div>
     </header>
 
-    <!-- Area 3D Viewer -->
-    <main class="viewer-wrapper" id="drop-zone">
-      <model-viewer
-        id="ar-viewer"
-        src="https://modelviewer.dev/shared-assets/models/Astronaut.glb"
-        alt="Model 3D AR"
-        ar
-        ar-modes="webxr scene-viewer quick-look"
-        camera-controls
-        touch-action="pan-y"
-        auto-rotate
-        shadow-intensity="1"
-        shadow-softness="0.8"
-        exposure="1"
-        environment-image="neutral"
-        interaction-prompt="auto"
-      >
-        <!-- Slot Tombol AR Kustom -->
-        <button slot="ar-button" id="custom-ar-button" class="btn-ar">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+    <!-- Overlay Drag & Drop -->
+    <div id="drop-zone-overlay" class="drag-drop-overlay">
+      <div class="drag-box">
+        <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+          <polyline points="17 8 12 3 7 8"></polyline>
+          <line x1="12" y1="3" x2="12" y2="15"></line>
+        </svg>
+        <p>Lepaskan file GLB di sini</p>
+      </div>
+    </div>
+
+    <!-- Panel Kontrol Samping / Bawah -->
+    <main class="control-drawer">
+      <!-- Tombol Masuk Kamera AR Utama -->
+      <div class="ar-launch-box">
+        <button id="btn-start-ar" class="btn-ar-launch" disabled>
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <circle cx="12" cy="12" r="3"></circle>
             <path d="M3 7V5a2 2 0 0 1 2-2h2"></path>
             <path d="M17 3h2a2 2 0 0 1 2 2v2"></path>
             <path d="M21 17v2a2 2 0 0 1-2 2h-2"></path>
             <path d="M7 21H5a2 2 0 0 1-2-2v-2"></path>
           </svg>
-          <span>Tampilkan Kamera AR</span>
+          <span id="ar-btn-text">Mulai Kamera AR</span>
         </button>
-
-        <!-- Progress Bar Loading -->
-        <div class="progress-bar" slot="progress-bar" id="load-progress">
-          <div class="update-bar" id="update-bar"></div>
-        </div>
-
-        <!-- Indikator Drag & Drop Overlay -->
-        <div class="drag-overlay" id="drag-overlay">
-          <div class="drag-message">
-            <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
-              <polyline points="17 8 12 3 7 8"></polyline>
-              <line x1="12" y1="3" x2="12" y2="15"></line>
-            </svg>
-            <p>Lepaskan file GLB di sini untuk memuat</p>
-          </div>
-        </div>
-      </model-viewer>
-
-      <!-- Panel Kontrol Mengambang (Quick Controls) -->
-      <div class="floating-controls">
-        <button id="btn-toggle-rotate" class="icon-btn" title="Toggle Auto-Rotate">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <path d="M21.5 2v6h-6M2.5 22v-6h6M2 11.5a10 10 0 0 1 18.8-4.3M22 12.5a10 10 0 0 1-18.8 4.2"/>
-          </svg>
-        </button>
-        <button id="btn-reset-cam" class="icon-btn" title="Reset Posisi Kamera">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <circle cx="12" cy="12" r="10"></circle>
-            <line x1="12" y1="8" x2="12" y2="12"></line>
-            <line x1="12" y1="16" x2="12.01" y2="16"></line>
-          </svg>
-        </button>
+        <p id="ar-support-hint" class="hint-text">Mengecek kompatibilitas WebXR...</p>
       </div>
-    </main>
 
-    <!-- Panel Pengaturan & Upload GLB -->
-    <aside class="control-panel">
-      <!-- Section Upload File GLB -->
-      <div class="panel-card">
-        <h2 class="card-title">
+      <!-- Upload Custom GLB -->
+      <section class="drawer-card">
+        <div class="card-header">
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
             <polyline points="7 10 12 15 17 10"></polyline>
             <line x1="12" y1="15" x2="12" y2="3"></line>
           </svg>
-          Load Model Custom (.GLB)
-        </h2>
-
-        <div class="upload-actions">
-          <input type="file" id="glb-file-input" accept=".glb,.gltf" style="display: none;" />
-          <button id="btn-browse" class="btn btn-primary">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <path d="M12 5v14M5 12h14"></path>
-            </svg>
-            Pilih File GLB dari HP / PC
-          </button>
+          <h3>Load Model Custom (.GLB)</h3>
         </div>
 
-        <div class="model-info" id="model-info">
-          <div class="info-row">
-            <span class="info-label">Model Aktif:</span>
-            <span class="info-val" id="model-name">Astronaut.glb (Sample)</span>
-          </div>
-          <div class="info-row">
-            <span class="info-label">Ukuran File:</span>
-            <span class="info-val" id="model-size">Bawaan Contoh</span>
-          </div>
-        </div>
-      </div>
+        <input type="file" id="glb-file-picker" accept=".glb,.gltf" style="display: none;" />
+        <button id="btn-browse-glb" class="btn btn-secondary">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M12 5v14M5 12h14"></path>
+          </svg>
+          Pilih File dari HP / PC
+        </button>
 
-      <!-- Section Model Contoh & Preset -->
-      <div class="panel-card">
-        <h2 class="card-title">
+        <div class="info-tag">
+          <span class="info-label">Model Aktif:</span>
+          <span class="info-value" id="current-model-name">Astronaut.glb</span>
+        </div>
+      </section>
+
+      <!-- Model Contoh / Preset -->
+      <section class="drawer-card">
+        <div class="card-header">
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <rect x="2" y="3" width="20" height="14" rx="2" ry="2"></rect>
             <line x1="8" y1="21" x2="16" y2="21"></line>
             <line x1="12" y1="17" x2="12" y2="21"></line>
           </svg>
-          Preset Sampel Siap Pakai
-        </h2>
-        <div class="preset-buttons">
-          <button class="btn btn-outline preset-btn active" data-url="https://modelviewer.dev/shared-assets/models/Astronaut.glb" data-name="Astronaut">
+          <h3>Preset Model Siap Uji</h3>
+        </div>
+        <div class="preset-grid">
+          <button class="preset-pill active" data-url="https://modelviewer.dev/shared-assets/models/Astronaut.glb" data-name="Astronaut">
             👨‍🚀 Astronaut
           </button>
-          <button class="btn btn-outline preset-btn" data-url="https://raw.githubusercontent.com/KhronosGroup/glTF-Sample-Models/master/2.0/Duck/glTF-Binary/Duck.glb" data-name="Duck">
+          <button class="preset-pill" data-url="https://raw.githubusercontent.com/KhronosGroup/glTF-Sample-Models/master/2.0/Duck/glTF-Binary/Duck.glb" data-name="Duck">
             🦆 Rubber Duck
           </button>
-          <button class="btn btn-outline preset-btn" data-url="https://modelviewer.dev/shared-assets/models/Chair.glb" data-name="Chair">
+          <button class="preset-pill" data-url="https://modelviewer.dev/shared-assets/models/Chair.glb" data-name="Chair">
             🪑 Modern Chair
           </button>
-          <button class="btn btn-outline preset-btn" data-url="https://modelviewer.dev/shared-assets/models/shishkebab.glb" data-name="Food">
+          <button class="preset-pill" data-url="https://modelviewer.dev/shared-assets/models/shishkebab.glb" data-name="Shishkebab">
             🍢 Shishkebab
           </button>
         </div>
-      </div>
+      </section>
 
-      <!-- Section Panduan AR -->
-      <div class="panel-card ar-guide-card">
-        <h2 class="card-title">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <circle cx="12" cy="12" r="10"></circle>
-            <line x1="12" y1="16" x2="12" y2="12"></line>
-            <line x1="12" y1="8" x2="12.01" y2="8"></line>
-          </svg>
-          Petunjuk Kamera AR
-        </h2>
-        <ul class="guide-list">
-          <li><strong>Android:</strong> Membuka Google Play Services for AR (Scene Viewer / WebXR). Arahkan kamera ke lantai datar bertekstur.</li>
-          <li><strong>iOS (iPhone/iPad):</strong> Otomatis beralih ke AR Quick Look via Safari.</li>
-          <li><strong>Desktop / Laptop:</strong> Jika dibuka di browser desktop, tombol AR akan menampilkan QR Code yang bisa Anda scan langsung dengan HP Anda!</li>
-        </ul>
-      </div>
-    </aside>
+      <!-- Petunjuk AR Hit Test -->
+      <section class="drawer-card guide-card">
+        <h3>💡 Cara Kerja Kamera AR:</h3>
+        <ol>
+          <li>Klik tombol <strong>Mulai Kamera AR</strong> di atas.</li>
+          <li>Kamera menyala &mdash; <strong>model 3D belum muncul</strong> agar tidak melayang/bergeser.</li>
+          <li>Arahkan kamera ke lantai atau meja datar hingga <strong>lingkaran target (reticle)</strong> muncul.</li>
+          <li><strong>Ketuk layar sekali</strong> di posisi yang diinginkan &mdash; model 3D akan muncul dan terkunci tepat di titik tersebut!</li>
+        </ol>
+      </section>
+    </main>
 
+    <!-- Loading Spinner & Progress -->
+    <div id="loading-overlay" class="loading-overlay hidden">
+      <div class="spinner"></div>
+      <p id="loading-text">Memuat model 3D...</p>
+    </div>
   </div>
 
-  <script src="app.js"></script>
+  <!-- AR DOM Overlay (Tampil di atas kamera saat sesi WebXR AR aktif) -->
+  <div id="ar-overlay" class="ar-overlay-root hidden">
+    <!-- Banner Panduan Hit-Test di Atas -->
+    <div id="ar-status-banner" class="ar-banner banner-searching">
+      <div class="banner-icon-pulse">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <circle cx="11" cy="11" r="8"></circle>
+          <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+        </svg>
+      </div>
+      <div class="banner-content">
+        <div id="ar-instruction-title" class="instruction-title">Mencari Bidang Lantai...</div>
+        <div id="ar-instruction-sub" class="instruction-sub">Arahkan kamera ke permukaan lantai atau meja datar</div>
+      </div>
+    </div>
+
+    <!-- Tombol-tombol Kontrol saat di dalam AR -->
+    <div class="ar-bottom-bar">
+      <!-- Tombol Pindahkan Posisi Objek -->
+      <button id="btn-ar-reposition" class="ar-btn-action" title="Pindahkan posisi model" disabled>
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path>
+          <circle cx="12" cy="10" r="3"></circle>
+        </svg>
+        <span>Pindahkan</span>
+      </button>
+
+      <!-- Tombol Putar Objek 45 derajat -->
+      <button id="btn-ar-rotate" class="ar-btn-action" title="Putar model" disabled>
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M21.5 2v6h-6M2.5 22v-6h6M2 11.5a10 10 0 0 1 18.8-4.3M22 12.5a10 10 0 0 1-18.8 4.2"/>
+        </svg>
+        <span>Putar</span>
+      </button>
+
+      <!-- Tombol Skala + -->
+      <button id="btn-ar-scale-up" class="ar-btn-action" title="Perbesar model" disabled>
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <line x1="12" y1="5" x2="12" y2="19"></line>
+          <line x1="5" y1="12" x2="19" y2="12"></line>
+        </svg>
+        <span>+ Skala</span>
+      </button>
+
+      <!-- Tombol Skala - -->
+      <button id="btn-ar-scale-down" class="ar-btn-action" title="Perkecil model" disabled>
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <line x1="5" y1="12" x2="19" y2="12"></line>
+        </svg>
+        <span>- Skala</span>
+      </button>
+
+      <!-- Tombol Keluar AR -->
+      <button id="btn-ar-exit" class="ar-btn-action ar-btn-exit" title="Tutup AR">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <line x1="18" y1="6" x2="6" y2="18"></line>
+          <line x1="6" y1="6" x2="18" y2="18"></line>
+        </svg>
+        <span>Keluar</span>
+      </button>
+    </div>
+  </div>
+
+  <!-- Entry Script Modular -->
+  <script type="module" src="app.js"></script>
 </body>
 </html>
