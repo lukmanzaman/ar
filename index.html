@@ -1,0 +1,193 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no" />
+  <title>Aplikasi Web AR - Google Model Viewer</title>
+  
+  <!-- Google Web Components: <model-viewer> (Standar resmi Google untuk 3D & WebXR AR) -->
+  <script type="module" src="https://ajax.googleapis.com/ajax/libs/model-viewer/3.5.0/model-viewer.min.js"></script>
+
+  <!-- Google Fonts: Inter -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet" />
+
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <!-- Container Utama -->
+  <div class="app-container">
+    
+    <!-- Top Bar / Header -->
+    <header class="app-header">
+      <div class="brand">
+        <div class="brand-icon">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path>
+            <polyline points="3.27 6.96 12 12.01 20.73 6.96"></polyline>
+            <line x1="12" y1="22.08" x2="12" y2="12"></line>
+          </svg>
+        </div>
+        <div class="brand-text">
+          <h1>Google Web AR Viewer</h1>
+          <p class="subtitle">HTML5 &bull; WebXR &bull; Google &lt;model-viewer&gt;</p>
+        </div>
+      </div>
+
+      <div class="header-badges">
+        <span id="ar-badge" class="badge badge-checking">
+          <span class="badge-dot"></span>
+          <span class="badge-label">Mengecek AR...</span>
+        </span>
+      </div>
+    </header>
+
+    <!-- Area 3D Viewer -->
+    <main class="viewer-wrapper" id="drop-zone">
+      <model-viewer
+        id="ar-viewer"
+        src="https://modelviewer.dev/shared-assets/models/Astronaut.glb"
+        alt="Model 3D AR"
+        ar
+        ar-modes="webxr scene-viewer quick-look"
+        camera-controls
+        touch-action="pan-y"
+        auto-rotate
+        shadow-intensity="1"
+        shadow-softness="0.8"
+        exposure="1"
+        environment-image="neutral"
+        interaction-prompt="auto"
+      >
+        <!-- Slot Tombol AR Kustom -->
+        <button slot="ar-button" id="custom-ar-button" class="btn-ar">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="12" cy="12" r="3"></circle>
+            <path d="M3 7V5a2 2 0 0 1 2-2h2"></path>
+            <path d="M17 3h2a2 2 0 0 1 2 2v2"></path>
+            <path d="M21 17v2a2 2 0 0 1-2 2h-2"></path>
+            <path d="M7 21H5a2 2 0 0 1-2-2v-2"></path>
+          </svg>
+          <span>Tampilkan Kamera AR</span>
+        </button>
+
+        <!-- Progress Bar Loading -->
+        <div class="progress-bar" slot="progress-bar" id="load-progress">
+          <div class="update-bar" id="update-bar"></div>
+        </div>
+
+        <!-- Indikator Drag & Drop Overlay -->
+        <div class="drag-overlay" id="drag-overlay">
+          <div class="drag-message">
+            <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+              <polyline points="17 8 12 3 7 8"></polyline>
+              <line x1="12" y1="3" x2="12" y2="15"></line>
+            </svg>
+            <p>Lepaskan file GLB di sini untuk memuat</p>
+          </div>
+        </div>
+      </model-viewer>
+
+      <!-- Panel Kontrol Mengambang (Quick Controls) -->
+      <div class="floating-controls">
+        <button id="btn-toggle-rotate" class="icon-btn" title="Toggle Auto-Rotate">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M21.5 2v6h-6M2.5 22v-6h6M2 11.5a10 10 0 0 1 18.8-4.3M22 12.5a10 10 0 0 1-18.8 4.2"/>
+          </svg>
+        </button>
+        <button id="btn-reset-cam" class="icon-btn" title="Reset Posisi Kamera">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="12" cy="12" r="10"></circle>
+            <line x1="12" y1="8" x2="12" y2="12"></line>
+            <line x1="12" y1="16" x2="12.01" y2="16"></line>
+          </svg>
+        </button>
+      </div>
+    </main>
+
+    <!-- Panel Pengaturan & Upload GLB -->
+    <aside class="control-panel">
+      <!-- Section Upload File GLB -->
+      <div class="panel-card">
+        <h2 class="card-title">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+            <polyline points="7 10 12 15 17 10"></polyline>
+            <line x1="12" y1="15" x2="12" y2="3"></line>
+          </svg>
+          Load Model Custom (.GLB)
+        </h2>
+
+        <div class="upload-actions">
+          <input type="file" id="glb-file-input" accept=".glb,.gltf" style="display: none;" />
+          <button id="btn-browse" class="btn btn-primary">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M12 5v14M5 12h14"></path>
+            </svg>
+            Pilih File GLB dari HP / PC
+          </button>
+        </div>
+
+        <div class="model-info" id="model-info">
+          <div class="info-row">
+            <span class="info-label">Model Aktif:</span>
+            <span class="info-val" id="model-name">Astronaut.glb (Sample)</span>
+          </div>
+          <div class="info-row">
+            <span class="info-label">Ukuran File:</span>
+            <span class="info-val" id="model-size">Bawaan Contoh</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Section Model Contoh & Preset -->
+      <div class="panel-card">
+        <h2 class="card-title">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <rect x="2" y="3" width="20" height="14" rx="2" ry="2"></rect>
+            <line x1="8" y1="21" x2="16" y2="21"></line>
+            <line x1="12" y1="17" x2="12" y2="21"></line>
+          </svg>
+          Preset Sampel Siap Pakai
+        </h2>
+        <div class="preset-buttons">
+          <button class="btn btn-outline preset-btn active" data-url="https://modelviewer.dev/shared-assets/models/Astronaut.glb" data-name="Astronaut">
+            👨‍🚀 Astronaut
+          </button>
+          <button class="btn btn-outline preset-btn" data-url="https://raw.githubusercontent.com/KhronosGroup/glTF-Sample-Models/master/2.0/Duck/glTF-Binary/Duck.glb" data-name="Duck">
+            🦆 Rubber Duck
+          </button>
+          <button class="btn btn-outline preset-btn" data-url="https://modelviewer.dev/shared-assets/models/Chair.glb" data-name="Chair">
+            🪑 Modern Chair
+          </button>
+          <button class="btn btn-outline preset-btn" data-url="https://modelviewer.dev/shared-assets/models/shishkebab.glb" data-name="Food">
+            🍢 Shishkebab
+          </button>
+        </div>
+      </div>
+
+      <!-- Section Panduan AR -->
+      <div class="panel-card ar-guide-card">
+        <h2 class="card-title">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="12" cy="12" r="10"></circle>
+            <line x1="12" y1="16" x2="12" y2="12"></line>
+            <line x1="12" y1="8" x2="12.01" y2="8"></line>
+          </svg>
+          Petunjuk Kamera AR
+        </h2>
+        <ul class="guide-list">
+          <li><strong>Android:</strong> Membuka Google Play Services for AR (Scene Viewer / WebXR). Arahkan kamera ke lantai datar bertekstur.</li>
+          <li><strong>iOS (iPhone/iPad):</strong> Otomatis beralih ke AR Quick Look via Safari.</li>
+          <li><strong>Desktop / Laptop:</strong> Jika dibuka di browser desktop, tombol AR akan menampilkan QR Code yang bisa Anda scan langsung dengan HP Anda!</li>
+        </ul>
+      </div>
+    </aside>
+
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>
